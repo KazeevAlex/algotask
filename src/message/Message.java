@@ -1,3 +1,5 @@
+package message;
+
 public enum Message {
     INSUFFICIENT_FUNDS("Недостаточно средств в банкомате. Повторите попытку позже."),
     AMOUNT_MUST_BE_MULTIPLE_OF("Сумма должна быть кратна {0}"),

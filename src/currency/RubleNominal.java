@@ -1,4 +1,6 @@
-public enum RubleNominal {
+package currency;
+
+public enum RubleNominal implements Nominal {
     RUB_5000(5000),
     RUB_1000(1000),
     RUB_500(500),
@@ -12,7 +14,8 @@ public enum RubleNominal {
         this.nominal = nominal;
     }
 
-    public int getNominal() {
+    @Override
+    public Integer getNominal() {
         return nominal;
     }
 }

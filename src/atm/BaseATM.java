@@ -1,3 +1,8 @@
+package atm;
+
+import currency.RubleNominal;
+import message.Message;
+
 import java.text.MessageFormat;
 import java.util.Comparator;
 import java.util.EnumMap;
