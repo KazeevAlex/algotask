@@ -1,5 +1,6 @@
 import atm.BaseATM;
 import atm.MulticurrencyATM;
+import atm.ReservationATM;
 import currency.Currency;
 import currency.EuroNominal;
 import currency.Nominal;
@@ -8,11 +9,72 @@ import currency.RubleNominal;
 import java.util.EnumMap;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.UUID;
 
 public class Main {
     public static void main(String[] args) {
-        checkMulticurrencyAtm();
+        checkReservationAtm();
     }
+
+    private static void checkReservationAtm() {
+        Map<Nominal, Integer> rubleBanknotes = new HashMap<>();
+        rubleBanknotes.put(RubleNominal.RUB_1000, 2);
+        rubleBanknotes.put(RubleNominal.RUB_500, 1);
+        rubleBanknotes.put(RubleNominal.RUB_50, 3);
+
+        Map<Nominal, Integer> euroBanknotes = new HashMap<>();
+        euroBanknotes.put(EuroNominal.EUR_500, 2);
+        euroBanknotes.put(EuroNominal.EUR_100, 1);
+        euroBanknotes.put(EuroNominal.EUR_20, 3);
+
+        Map<Currency, Map<Nominal, Integer>> currencies = new HashMap<>();
+        currencies.put(Currency.RUB, rubleBanknotes);
+        currencies.put(Currency.EUR, euroBanknotes);
+
+        rubleBanknotes.forEach((k, v) -> System.out.println(k.getNominal()));
+
+        ReservationATM atm = new ReservationATM(currencies);
+
+        System.out.println();
+        System.out.println("ATM state before reservation: ");
+        System.out.println("total amount RUB: " + atm.getBalance(Currency.RUB));
+        System.out.println("min nominal RUB: " + atm.getMinNominal(Currency.RUB));
+        System.out.println("total amount EUR: " + atm.getBalance(Currency.EUR));
+        System.out.println("min nominal EUR: " + atm.getMinNominal(Currency.EUR));
+        System.out.println();
+
+        UUID reservationUuid = atm.reserve(Currency.RUB, 100);
+
+        System.out.println("Reservation UUID: " + reservationUuid);
+        System.out.println();
+
+        Map<Currency, Map<Nominal, Integer>> withdrawnBanknotes = atm.withdrawReservation(reservationUuid);
+        System.out.println("Withdrawn Banknotes: ");
+        System.out.print("Currencies: ");
+        withdrawnBanknotes.keySet().forEach(System.out::println);
+        withdrawnBanknotes.get(Currency.RUB).forEach((k, v) -> System.out.println("Nominal: " + k + "; " + "Amount: " + v));
+        System.out.println();
+
+
+        reservationUuid = atm.reserve(Currency.EUR, 60);
+
+        System.out.println("Reservation UUID: " + reservationUuid);
+        System.out.println();
+
+        withdrawnBanknotes = atm.withdrawReservation(reservationUuid);
+        System.out.println("Withdrawn Banknotes: ");
+        System.out.print("Currencies: ");
+        withdrawnBanknotes.keySet().forEach(System.out::println);
+        withdrawnBanknotes.get(Currency.EUR).forEach((k, v) -> System.out.println("Nominal: " + k + "; " + "Amount: " + v));
+
+        System.out.println();
+        System.out.println("ATM state after withdrawal: ");
+        System.out.println("total amount RUB: " + atm.getBalance(Currency.RUB));
+        System.out.println("total amount EUR: " + atm.getBalance(Currency.EUR));
+        System.out.println("min nominal RUB: " + atm.getMinNominal(Currency.RUB));
+        System.out.println("min nominal EUR: " + atm.getMinNominal(Currency.EUR));
+    }
+
     private static void checkMulticurrencyAtm() {
         Map<Nominal, Integer> rubleBanknotes = new HashMap<>();
         rubleBanknotes.put(RubleNominal.RUB_1000, 2);
