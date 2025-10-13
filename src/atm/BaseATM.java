@@ -1,50 +1,46 @@
 package atm;
 
-import currency.RubleNominal;
+import currency.Nominal;
 import message.Message;
 
 import java.text.MessageFormat;
-import java.util.Comparator;
-import java.util.EnumMap;
+import java.util.HashMap;
 import java.util.Map;
 
 public class BaseATM {
 
-    private final Map<RubleNominal, Integer> banknotes;
-    private Integer balance;
-    private RubleNominal minNominal;
+    private final BaseAtmState atmState;
 
-    public BaseATM(Map<RubleNominal, Integer> banknotes) {
-        this.banknotes = new EnumMap<>(banknotes);
-        updateAtmCurrentState();
+    public BaseATM(BaseAtmState atmState) {
+        this.atmState = atmState;
     }
 
-    public Integer getBalance() {
-        return balance;
-    }
-
-    public RubleNominal getMinNominal() {
-        return minNominal;
-    }
-
-    public Map<RubleNominal, Integer> withdraw(Integer withdrawalAmount) {
+    public Map<Nominal, Integer> withdraw(Integer withdrawalAmount) {
         checkWithdrawalAmount(withdrawalAmount);
         var withdrawalBanknotes = prepareWithdrawalBanknotes(withdrawalAmount);
-        updateAtmCurrentState();
+        removeWithdrawalBanknotes(withdrawalBanknotes);
+        atmState.updateAtmCurrentState();
         return withdrawalBanknotes;
     }
 
-    public void topUp(Map<RubleNominal, Integer> topUpBanknotes) {
-        topUpBanknotes.forEach((k, v) -> banknotes.merge(k, v, Integer::sum));
-        updateAtmCurrentState();
+    public void topUp(Map<Nominal, Integer> topUpBanknotes) {
+        topUpBanknotes.forEach((k, v) -> atmState.getBanknotes().merge(k, v, Integer::sum));
+        atmState.updateAtmCurrentState();
     }
 
-    private Map<RubleNominal, Integer> prepareWithdrawalBanknotes(Integer withdrawalAmount) {
-        Map<RubleNominal, Integer> withdrawalBanknotes = new EnumMap<>(RubleNominal.class);
+    private void removeWithdrawalBanknotes(Map<Nominal, Integer> withdrawalBanknotes) {
+        withdrawalBanknotes.forEach(
+                (nominal, amount) ->
+                        atmState.getBanknotes().merge(nominal, amount, (atmAmount, withdrawalAmount) -> atmAmount - withdrawalAmount)
+        );
+    }
+
+    private Map<Nominal, Integer> prepareWithdrawalBanknotes(Integer withdrawalAmount) {
+        Map<Nominal, Integer> withdrawalBanknotes = new HashMap<>();
         int remainsAmount = withdrawalAmount;
 
-        for (var entry : banknotes.entrySet()) {
-            RubleNominal key = entry.getKey();
+        for (var entry : atmState.getBanknotes().entrySet()) {
+            Nominal key = entry.getKey();
             Integer atmBanknoteAmount = entry.getValue();
             int nominal = key.getNominal();
 
@@ -59,8 +55,6 @@ public class BaseATM {
 
             remainsAmount -= nominal * requiredBanknoteAmount;
             withdrawalBanknotes.put(key, requiredBanknoteAmount);
-
-            entry.setValue(atmBanknoteAmount - requiredBanknoteAmount);
 
             if (remainsAmount == 0) {
                 break;
@@ -77,8 +71,8 @@ public class BaseATM {
             return;
         }
         int nearestMin = withdrawalAmount - remainsAmount;
-        int nearestMax = banknotes.keySet().stream()
-                .mapToInt(RubleNominal::getNominal)
+        int nearestMax = atmState.getBanknotes().keySet().stream()
+                .mapToInt(Nominal::getNominal)
                 .filter(i -> i > withdrawalAmount)
                 .min()
                 .getAsInt();
@@ -88,34 +82,13 @@ public class BaseATM {
     }
 
     private void checkWithdrawalAmount(Integer withdrawalAmount) {
-        if (withdrawalAmount > balance) {
+        if (withdrawalAmount > atmState.getBalance()) {
             throw new IllegalStateException(Message.INSUFFICIENT_FUNDS.getPattern());
         }
-        if (withdrawalAmount % minNominal.getNominal() > 0) {
-            String message = MessageFormat.format(Message.AMOUNT_MUST_BE_MULTIPLE_OF.getPattern(), minNominal.getNominal());
+        Integer minNominalValue = atmState.getMinNominal().getNominal();
+        if (withdrawalAmount % minNominalValue > 0) {
+            String message = MessageFormat.format(Message.AMOUNT_MUST_BE_MULTIPLE_OF.getPattern(), minNominalValue);
             throw new IllegalStateException(message);
         }
-    }
-
-    private void updateAtmCurrentState() {
-        removeEndedNominals();
-        updateMinNominal();
-        recalculateBalance();
-    }
-
-    private void removeEndedNominals() {
-        this.banknotes.values().removeIf(value -> value < 1);
-    }
-
-    private void updateMinNominal() {
-        this.minNominal = banknotes.keySet().stream()
-                .min(Comparator.comparingInt(RubleNominal::getNominal))
-                .orElse(RubleNominal.DEFAULT);
-    }
-
-    private void recalculateBalance() {
-        this.balance = banknotes.entrySet().stream()
-                .mapToInt(entry -> entry.getKey().getNominal() * entry.getValue())
-                .sum();
     }
 }
