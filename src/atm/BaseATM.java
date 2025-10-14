@@ -19,20 +19,15 @@ public class BaseATM {
         checkWithdrawalAmount(withdrawalAmount);
         var withdrawalBanknotes = prepareWithdrawalBanknotes(withdrawalAmount);
         removeWithdrawalBanknotes(withdrawalBanknotes);
-        atmState.updateAtmCurrentState();
         return withdrawalBanknotes;
     }
 
     public void topUp(Map<Nominal, Integer> topUpBanknotes) {
-        topUpBanknotes.forEach((k, v) -> atmState.getBanknotes().merge(k, v, Integer::sum));
-        atmState.updateAtmCurrentState();
+        atmState.putAll(topUpBanknotes);
     }
 
     private void removeWithdrawalBanknotes(Map<Nominal, Integer> withdrawalBanknotes) {
-        withdrawalBanknotes.forEach(
-                (nominal, amount) ->
-                        atmState.getBanknotes().merge(nominal, amount, (atmAmount, withdrawalAmount) -> atmAmount - withdrawalAmount)
-        );
+        atmState.removeAll(withdrawalBanknotes);
     }
 
     private Map<Nominal, Integer> prepareWithdrawalBanknotes(Integer withdrawalAmount) {
