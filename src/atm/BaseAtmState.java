@@ -25,6 +25,9 @@ public class BaseAtmState {
     }
 
     public void putAll(Map<Nominal, Integer> banknotes) {
+        if (banknotes == null || banknotes.isEmpty()) {
+            return;
+        }
         banknotes.forEach(this::put);
     }
 
@@ -44,6 +47,9 @@ public class BaseAtmState {
     }
 
     public void removeAll(Map<Nominal, Integer> banknotes) {
+        if (banknotes == null || banknotes.isEmpty()) {
+            return;
+        }
         banknotes.forEach(this::remove);
     }
 
