@@ -3,52 +3,69 @@ package atm;
 import currency.Nominal;
 import currency.NominalUtils;
 import currency.RubleNominal;
+import message.Message;
 
+import java.util.Collections;
 import java.util.Comparator;
 import java.util.Map;
 
 public class BaseAtmState {
 
     private final Map<Nominal, Integer> banknotes;
-    private Integer balance;
-    private Nominal minNominal;
 
     public BaseAtmState(Map<Nominal, Integer> banknotes) {
         this.banknotes = NominalUtils.getSortedNominalMap(banknotes);
-        updateAtmCurrentState();
+    }
+
+    public void put(Nominal nominal, Integer amount) {
+        if (amount == null || amount < 1) {
+            return;
+        }
+        banknotes.merge(nominal, amount, Integer::sum);
+    }
+
+    public void putAll(Map<Nominal, Integer> banknotes) {
+        if (banknotes == null || banknotes.isEmpty()) {
+            return;
+        }
+        banknotes.forEach(this::put);
+    }
+
+    public void remove(Nominal nominal, Integer amount) {
+        if (amount == null || amount < 1) {
+            return;
+        }
+        Integer atmNominalAmount = banknotes.getOrDefault(nominal, 0);
+        if (atmNominalAmount < amount) {
+            throw new IllegalStateException(Message.INSUFFICIENT_FUNDS.getPattern());
+        }
+        if (atmNominalAmount - amount == 0) {
+            banknotes.remove(nominal);
+            return;
+        }
+        banknotes.merge(nominal, amount, (atm, withdrawal) -> atm - withdrawal);
+    }
+
+    public void removeAll(Map<Nominal, Integer> banknotes) {
+        if (banknotes == null || banknotes.isEmpty()) {
+            return;
+        }
+        banknotes.forEach(this::remove);
     }
 
     public Map<Nominal, Integer> getBanknotes() {
-        return banknotes;
+        return Collections.unmodifiableMap(banknotes);
     }
 
     public Integer getBalance() {
-        return balance;
+        return banknotes.entrySet().stream()
+                .mapToInt(entry -> entry.getKey().getNominal() * entry.getValue())
+                .sum();
     }
 
     public Nominal getMinNominal() {
-        return minNominal;
-    }
-
-    public void updateAtmCurrentState() {
-        removeEndedNominals();
-        updateMinNominal();
-        recalculateBalance();
-    }
-
-    private void removeEndedNominals() {
-        this.banknotes.values().removeIf(value -> value < 1);
-    }
-
-    private void updateMinNominal() {
-        this.minNominal = banknotes.keySet().stream()
+        return banknotes.keySet().stream()
                 .min(Comparator.comparingInt(Nominal::getNominal))
                 .orElse(RubleNominal.DEFAULT);
-    }
-
-    private void recalculateBalance() {
-        this.balance = banknotes.entrySet().stream()
-                .mapToInt(entry -> entry.getKey().getNominal() * entry.getValue())
-                .sum();
     }
 }
