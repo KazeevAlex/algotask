@@ -22,17 +22,24 @@ public class BaseAtmState {
         if (banknotes == null || banknotes.isEmpty()) {
             return;
         }
-        banknotes.forEach(this::addBanknotes);
+        banknotes.forEach(this::addBanknote);
     }
 
-    private void addBanknotes(Nominal nominal, Integer amount) {
+    private void addBanknote(Nominal nominal, Integer amount) {
         if (nominal == null || amount == null || amount < 1) {
             return;
         }
         banknotes.merge(nominal, amount, Integer::sum);
     }
 
-    public void remove(Nominal nominal, Integer amount) {
+    public void remove(Map<Nominal, Integer> banknotes) {
+        if (banknotes == null || banknotes.isEmpty()) {
+            return;
+        }
+        banknotes.forEach(this::removeBanknote);
+    }
+
+    private void removeBanknote(Nominal nominal, Integer amount) {
         if (amount == null || amount < 1) {
             return;
         }
@@ -45,13 +52,6 @@ public class BaseAtmState {
             return;
         }
         banknotes.merge(nominal, amount, (atm, withdrawal) -> atm - withdrawal);
-    }
-
-    public void removeAll(Map<Nominal, Integer> banknotes) {
-        if (banknotes == null || banknotes.isEmpty()) {
-            return;
-        }
-        banknotes.forEach(this::remove);
     }
 
     public Map<Nominal, Integer> getBanknotes() {

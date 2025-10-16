@@ -27,7 +27,7 @@ public class BaseATM {
     }
 
     private void removeWithdrawalBanknotes(Map<Nominal, Integer> withdrawalBanknotes) {
-        atmState.removeAll(withdrawalBanknotes);
+        atmState.remove(withdrawalBanknotes);
     }
 
     private Map<Nominal, Integer> prepareWithdrawalBanknotes(Integer withdrawalAmount) {
