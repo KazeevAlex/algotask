@@ -23,7 +23,7 @@ public class BaseATM {
     }
 
     public void topUp(Map<Nominal, Integer> topUpBanknotes) {
-        atmState.putAll(topUpBanknotes);
+        atmState.put(topUpBanknotes);
     }
 
     private void removeWithdrawalBanknotes(Map<Nominal, Integer> withdrawalBanknotes) {

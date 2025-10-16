@@ -7,6 +7,10 @@ public final class NominalUtils {
 
     private NominalUtils() {}
 
+    public static Map<Nominal, Integer> getSortedNominalMap() {
+        return new TreeMap<>(Nominal.getComparator());
+    }
+
     public static Map<Nominal, Integer> getSortedNominalMap(Map<Nominal, Integer> unsortedMap) {
         Map<Nominal, Integer> sortedMap = new TreeMap<>(Nominal.getComparator());
         sortedMap.putAll(unsortedMap);

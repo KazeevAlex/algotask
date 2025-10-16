@@ -14,21 +14,22 @@ public class BaseAtmState {
     private final Map<Nominal, Integer> banknotes;
 
     public BaseAtmState(Map<Nominal, Integer> banknotes) {
-        this.banknotes = NominalUtils.getSortedNominalMap(banknotes);
+        this.banknotes = NominalUtils.getSortedNominalMap();
+        this.put(banknotes);
     }
 
-    public void put(Nominal nominal, Integer amount) {
-        if (amount == null || amount < 1) {
-            return;
-        }
-        banknotes.merge(nominal, amount, Integer::sum);
-    }
-
-    public void putAll(Map<Nominal, Integer> banknotes) {
+    public void put(Map<Nominal, Integer> banknotes) {
         if (banknotes == null || banknotes.isEmpty()) {
             return;
         }
-        banknotes.forEach(this::put);
+        banknotes.forEach(this::addBanknotes);
+    }
+
+    private void addBanknotes(Nominal nominal, Integer amount) {
+        if (nominal == null || amount == null || amount < 1) {
+            return;
+        }
+        banknotes.merge(nominal, amount, Integer::sum);
     }
 
     public void remove(Nominal nominal, Integer amount) {
