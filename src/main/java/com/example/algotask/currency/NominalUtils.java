@@ -1,4 +1,4 @@
-package currency;
+package com.example.algotask.currency;
 
 import java.util.Map;
 import java.util.TreeMap;

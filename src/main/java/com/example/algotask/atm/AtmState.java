@@ -1,9 +1,9 @@
-package atm;
+package com.example.algotask.atm;
 
-import currency.Currency;
-import currency.Nominal;
-import currency.NominalUtils;
-import message.Message;
+import com.example.algotask.currency.Currency;
+import com.example.algotask.currency.Nominal;
+import com.example.algotask.currency.NominalUtils;
+import com.example.algotask.message.Message;
 
 import java.util.Collections;
 import java.util.Comparator;

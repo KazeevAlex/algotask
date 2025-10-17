@@ -1,7 +1,7 @@
-package atm;
+package com.example.algotask.atm;
 
-import currency.Nominal;
-import message.Message;
+import com.example.algotask.currency.Nominal;
+import com.example.algotask.message.Message;
 
 import java.text.MessageFormat;
 import java.util.HashMap;
