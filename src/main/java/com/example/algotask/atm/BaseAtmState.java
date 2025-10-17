@@ -1,9 +1,9 @@
-package atm;
+package com.example.algotask.atm;
 
-import currency.Nominal;
-import currency.NominalUtils;
-import currency.RubleNominal;
-import message.Message;
+import com.example.algotask.currency.Nominal;
+import com.example.algotask.currency.NominalUtils;
+import com.example.algotask.currency.RubleNominal;
+import com.example.algotask.message.Message;
 
 import java.util.Collections;
 import java.util.Comparator;
@@ -14,24 +14,32 @@ public class BaseAtmState {
     private final Map<Nominal, Integer> banknotes;
 
     public BaseAtmState(Map<Nominal, Integer> banknotes) {
-        this.banknotes = NominalUtils.getSortedNominalMap(banknotes);
+        this.banknotes = NominalUtils.getSortedNominalMap();
+        this.put(banknotes);
     }
 
-    public void put(Nominal nominal, Integer amount) {
-        if (amount == null || amount < 1) {
+    public void put(Map<Nominal, Integer> banknotes) {
+        if (banknotes == null || banknotes.isEmpty()) {
+            return;
+        }
+        banknotes.forEach(this::addBanknote);
+    }
+
+    private void addBanknote(Nominal nominal, Integer amount) {
+        if (nominal == null || amount == null || amount < 1) {
             return;
         }
         banknotes.merge(nominal, amount, Integer::sum);
     }
 
-    public void putAll(Map<Nominal, Integer> banknotes) {
+    public void remove(Map<Nominal, Integer> banknotes) {
         if (banknotes == null || banknotes.isEmpty()) {
             return;
         }
-        banknotes.forEach(this::put);
+        banknotes.forEach(this::removeBanknote);
     }
 
-    public void remove(Nominal nominal, Integer amount) {
+    private void removeBanknote(Nominal nominal, Integer amount) {
         if (amount == null || amount < 1) {
             return;
         }
@@ -44,13 +52,6 @@ public class BaseAtmState {
             return;
         }
         banknotes.merge(nominal, amount, (atm, withdrawal) -> atm - withdrawal);
-    }
-
-    public void removeAll(Map<Nominal, Integer> banknotes) {
-        if (banknotes == null || banknotes.isEmpty()) {
-            return;
-        }
-        banknotes.forEach(this::remove);
     }
 
     public Map<Nominal, Integer> getBanknotes() {

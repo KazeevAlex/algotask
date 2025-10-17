@@ -1,4 +1,4 @@
-package message;
+package com.example.algotask.message;
 
 public enum Message {
     INSUFFICIENT_FUNDS("Недостаточно средств в банкомате. Повторите попытку позже."),

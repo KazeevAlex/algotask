@@ -1,4 +1,4 @@
-package currency;
+package com.example.algotask.currency;
 
 import java.util.Map;
 import java.util.TreeMap;
@@ -6,6 +6,10 @@ import java.util.TreeMap;
 public final class NominalUtils {
 
     private NominalUtils() {}
+
+    public static Map<Nominal, Integer> getSortedNominalMap() {
+        return new TreeMap<>(Nominal.getComparator());
+    }
 
     public static Map<Nominal, Integer> getSortedNominalMap(Map<Nominal, Integer> unsortedMap) {
         Map<Nominal, Integer> sortedMap = new TreeMap<>(Nominal.getComparator());

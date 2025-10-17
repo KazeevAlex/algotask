@@ -1,4 +1,4 @@
-package currency;
+package com.example.algotask.currency;
 
 public enum RubleNominal implements Nominal {
     RUB_5000(5000),

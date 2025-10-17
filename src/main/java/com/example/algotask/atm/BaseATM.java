@@ -1,7 +1,7 @@
-package atm;
+package com.example.algotask.atm;
 
-import currency.Nominal;
-import message.Message;
+import com.example.algotask.currency.Nominal;
+import com.example.algotask.message.Message;
 
 import java.text.MessageFormat;
 import java.util.HashMap;
@@ -23,11 +23,11 @@ public class BaseATM {
     }
 
     public void topUp(Map<Nominal, Integer> topUpBanknotes) {
-        atmState.putAll(topUpBanknotes);
+        atmState.put(topUpBanknotes);
     }
 
     private void removeWithdrawalBanknotes(Map<Nominal, Integer> withdrawalBanknotes) {
-        atmState.removeAll(withdrawalBanknotes);
+        atmState.remove(withdrawalBanknotes);
     }
 
     private Map<Nominal, Integer> prepareWithdrawalBanknotes(Integer withdrawalAmount) {

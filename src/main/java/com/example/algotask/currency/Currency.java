@@ -1,4 +1,4 @@
-package currency;
+package com.example.algotask.currency;
 
 import java.util.concurrent.locks.ReentrantLock;
 
