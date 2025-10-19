@@ -23,7 +23,9 @@ public class AtmState {
     }
 
     public void putReservation(UUID reservationUuid, Map<Currency, Map<Nominal, Integer>> reservedBanknotes) {
-        reservation.put(reservationUuid, reservedBanknotes);
+        Map<Currency, Map<Nominal, Integer>> copy = new HashMap<>();
+        reservedBanknotes.forEach((currency, banknotes) -> copy.put(currency, Map.copyOf(banknotes)));
+        reservation.put(reservationUuid, copy);
     }
 
     public boolean containsReservation(UUID reservationUuid) {
