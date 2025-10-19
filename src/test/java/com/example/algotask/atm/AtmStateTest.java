@@ -9,6 +9,7 @@ import org.junit.jupiter.api.Test;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -78,5 +79,34 @@ class AtmStateTest {
     @Test
     void testGetMinNominalForNewCurrency() {
         assertEquals(Currency.EUR.getDefaultMinValue(), atmState.getMinNominal(Currency.EUR));
+    }
+
+    @Test
+    void testPutReservation() {
+        UUID reservationUuid = UUID.randomUUID();
+        Map<Currency, Map<Nominal, Integer>> reservedBanknotes = Map.of(Currency.RUB, Map.of(RubleNominal.RUB_100, 1));
+
+        atmState.putReservation(reservationUuid, reservedBanknotes);
+
+        assertTrue(atmState.containsReservation(reservationUuid));
+        assertEquals(reservedBanknotes, atmState.removeReservation(reservationUuid));
+    }
+
+    @Test
+    void testContainsReservation_forNonExisting() {
+        assertFalse(atmState.containsReservation(UUID.randomUUID()));
+    }
+
+    @Test
+    void testRemoveReservation() {
+        UUID reservationUuid = UUID.randomUUID();
+        Map<Currency, Map<Nominal, Integer>> reservedBanknotes = Map.of(Currency.RUB, Map.of(RubleNominal.RUB_100, 1));
+        atmState.putReservation(reservationUuid, reservedBanknotes);
+
+        Map<Currency, Map<Nominal, Integer>> removed = atmState.removeReservation(reservationUuid);
+
+        assertEquals(reservedBanknotes, removed);
+        assertFalse(atmState.containsReservation(reservationUuid));
+        assertNull(atmState.removeReservation(reservationUuid));
     }
 }
