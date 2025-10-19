@@ -10,13 +10,28 @@ import java.util.Comparator;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
+import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
 
 public class AtmState {
 
     private final Map<Currency, Map<Nominal, Integer>> banknotes = new HashMap<>();
+    private final Map<UUID, Map<Currency, Map<Nominal, Integer>>> reservation = new ConcurrentHashMap<>();
 
     public AtmState(Map<Currency, Map<Nominal, Integer>> banknotes) {
         this.put(banknotes);
+    }
+
+    public void putReservation(UUID reservationUuid, Map<Currency, Map<Nominal, Integer>> reservedBanknotes) {
+        reservation.put(reservationUuid, reservedBanknotes);
+    }
+
+    public boolean containsReservation(UUID reservationUuid) {
+        return reservation.containsKey(reservationUuid);
+    }
+
+    public Map<Currency, Map<Nominal, Integer>> removeReservation(UUID reservationUuid) {
+        return reservation.remove(reservationUuid);
     }
 
     public void put(Map<Currency, Map<Nominal, Integer>> newBanknotes) {
@@ -26,7 +41,7 @@ public class AtmState {
         newBanknotes.forEach(this::addCurrency);
     }
 
-    private void addCurrency(Currency currency, Map<Nominal, Integer> newBanknotes) {
+    public void addCurrency(Currency currency, Map<Nominal, Integer> newBanknotes) {
         Objects.requireNonNull(currency);
         if (newBanknotes == null || newBanknotes.isEmpty()) {
             return;
