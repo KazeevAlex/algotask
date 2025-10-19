@@ -3,9 +3,9 @@ package com.example.algotask.atm;
 import com.example.algotask.currency.Currency;
 import com.example.algotask.currency.Nominal;
 import com.example.algotask.currency.RubleNominal;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
@@ -23,23 +23,19 @@ class MulticurrencyATMTest {
     @Mock
     private AtmState atmState;
 
+    @InjectMocks
     private MulticurrencyATM multicurrencyATM;
-
-    @BeforeEach
-    void setUp() {
-        multicurrencyATM = new MulticurrencyATM(atmState);
-    }
 
     @Test
     void withdraw_shouldReturnCorrectBanknotes_whenSufficientFunds() {
         // given
-        Map<Nominal, Integer> map = Map.of(
+        Map<Nominal, Integer> banknotes = Map.of(
                 RubleNominal.RUB_1000, 5,
                 RubleNominal.RUB_500, 10,
                 RubleNominal.RUB_100, 10,
                 RubleNominal.RUB_50, 10
         );
-        when(atmState.getBanknotes(Currency.RUB)).thenReturn(new TreeMap<>(map));
+        when(atmState.getBanknotes(Currency.RUB)).thenReturn(new TreeMap<>(banknotes));
         when(atmState.getBalance(Currency.RUB)).thenReturn(11500);
         when(atmState.getMinNominal(Currency.RUB)).thenReturn(RubleNominal.RUB_50);
 
