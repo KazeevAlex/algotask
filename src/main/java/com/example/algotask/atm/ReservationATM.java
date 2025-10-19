@@ -22,10 +22,7 @@ public class ReservationATM {
     public Map<Currency, Map<Nominal, Integer>> withdraw(Currency currency, Integer withdrawalAmount) {
         currency.getLock().lock();
         try {
-            checkWithdrawalAmount(currency, withdrawalAmount);
-            var withdrawalBanknotes = prepareWithdrawalBanknotes(currency, withdrawalAmount);
-            atmState.remove(withdrawalBanknotes);
-            return withdrawalBanknotes;
+            return getBanknotes(currency, withdrawalAmount);
         } finally {
             currency.getLock().unlock();
         }
@@ -51,9 +48,7 @@ public class ReservationATM {
 
         currency.getLock().lock();
         try {
-            checkWithdrawalAmount(currency, reserveAmount);
-            reservedBanknotes = prepareWithdrawalBanknotes(currency, reserveAmount);
-            atmState.remove(reservedBanknotes);
+            reservedBanknotes = getBanknotes(currency, reserveAmount);
         } finally {
             currency.getLock().unlock();
         }
@@ -65,6 +60,13 @@ public class ReservationATM {
     public Map<Currency, Map<Nominal, Integer>> withdrawReservation(UUID reservationUuid) {
         checkReservationUuid(reservationUuid);
         return atmState.removeReservation(reservationUuid);
+    }
+
+    private Map<Currency, Map<Nominal, Integer>> getBanknotes(Currency currency, Integer amount) {
+        checkWithdrawalAmount(currency, amount);
+        var withdrawalBanknotes = prepareWithdrawalBanknotes(currency, amount);
+        atmState.remove(withdrawalBanknotes);
+        return withdrawalBanknotes;
     }
 
     private Map<Currency, Map<Nominal, Integer>> prepareWithdrawalBanknotes(Currency currency, Integer withdrawalAmount) {
