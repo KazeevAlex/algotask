@@ -5,25 +5,18 @@ import com.example.algotask.currency.Nominal;
 import com.example.algotask.message.Message;
 
 import java.text.MessageFormat;
-import java.util.Comparator;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.TreeMap;
 import java.util.UUID;
 
 public class ReservationATM {
 
-    private static final int DEFAULT_BALANCE_VALUE = 0;
     private static final int ZERO_AMOUNT = 0;
 
-    private final Map<Currency, Map<Nominal, Integer>> banknotes = new HashMap<>();
-    private final Map<UUID, Map<Currency, Map<Nominal, Integer>>> reservation = new HashMap<>();
-    private final Map<Currency, Integer> balances = new HashMap<>();
-    private final Map<Currency, Nominal> minNominals = new HashMap<>();
+    private final AtmState atmState;
 
-    public ReservationATM(Map<Currency, Map<Nominal, Integer>> banknotes) {
-        banknotes.forEach((key, value) -> this.banknotes.put(key, getSortedNominalMap(value)));
-        this.banknotes.keySet().forEach(this::updateAtmCurrentState);
+    public ReservationATM(AtmState atmState) {
+        this.atmState = atmState;
     }
 
     public Map<Currency, Map<Nominal, Integer>> withdraw(Currency currency, Integer withdrawalAmount) {
@@ -31,7 +24,7 @@ public class ReservationATM {
         try {
             checkWithdrawalAmount(currency, withdrawalAmount);
             var withdrawalBanknotes = prepareWithdrawalBanknotes(currency, withdrawalAmount);
-            updateAtmCurrentState(currency);
+            atmState.remove(withdrawalBanknotes);
             return withdrawalBanknotes;
         } finally {
             currency.getLock().unlock();
@@ -45,12 +38,7 @@ public class ReservationATM {
 
             topUpCurrency.getLock().lock();
             try {
-                if (banknotes.containsKey(topUpCurrency)) {
-                    topUpBanknotes.forEach((nominal, amount) -> banknotes.get(topUpCurrency).merge(nominal, amount, Integer::sum));
-                } else {
-                    banknotes.put(topUpCurrency, getSortedNominalMap(topUpBanknotes));
-                }
-                updateAtmCurrentState(topUpCurrency);
+                atmState.addCurrency(topUpCurrency, topUpBanknotes);
             } finally {
                 topUpCurrency.getLock().unlock();
             }
@@ -65,25 +53,25 @@ public class ReservationATM {
         try {
             checkWithdrawalAmount(currency, reserveAmount);
             reservedBanknotes = prepareWithdrawalBanknotes(currency, reserveAmount);
-            updateAtmCurrentState(currency);
+            atmState.remove(reservedBanknotes);
         } finally {
             currency.getLock().unlock();
         }
 
-        reservation.put(reservationUuid, reservedBanknotes);
+        atmState.putReservation(reservationUuid, reservedBanknotes);
         return reservationUuid;
     }
 
     public Map<Currency, Map<Nominal, Integer>> withdrawReservation(UUID reservationUuid) {
         checkReservationUuid(reservationUuid);
-        return reservation.remove(reservationUuid);
+        return atmState.removeReservation(reservationUuid);
     }
 
     private Map<Currency, Map<Nominal, Integer>> prepareWithdrawalBanknotes(Currency currency, Integer withdrawalAmount) {
         Map<Nominal, Integer> withdrawalBanknotes = new HashMap<>();
         int remainsAmount = withdrawalAmount;
 
-        for (var entry : banknotes.get(currency).entrySet()) {
+        for (var entry : atmState.getBanknotes(currency).entrySet()) {
             Nominal key = entry.getKey();
             Integer atmBanknoteAmount = entry.getValue();
             int nominal = key.getNominal();
@@ -100,8 +88,6 @@ public class ReservationATM {
             remainsAmount -= nominal * requiredBanknoteAmount;
             withdrawalBanknotes.put(key, requiredBanknoteAmount);
 
-            entry.setValue(atmBanknoteAmount - requiredBanknoteAmount);
-
             if (remainsAmount == ZERO_AMOUNT) {
                 break;
             }
@@ -113,7 +99,7 @@ public class ReservationATM {
     }
 
     private void checkReservationUuid(UUID reservationUuid) {
-        if (!reservation.containsKey(reservationUuid)) {
+        if (!atmState.containsReservation(reservationUuid)) {
             String message = MessageFormat.format(Message.RESERVATION_NOT_EXIST.getPattern(), reservationUuid);
             throw new IllegalStateException(message);
         }
@@ -124,7 +110,7 @@ public class ReservationATM {
             return;
         }
         int nearestMin = withdrawalAmount - remainsAmount;
-        int nearestMax = banknotes.get(currency).keySet().stream()
+        int nearestMax = atmState.getBanknotes(currency).keySet().stream()
                 .mapToInt(Nominal::getNominal)
                 .filter(i -> i > withdrawalAmount)
                 .min()
@@ -135,54 +121,14 @@ public class ReservationATM {
     }
 
     private void checkWithdrawalAmount(Currency currency, Integer withdrawalAmount) {
-        if (withdrawalAmount > getBalance(currency)) {
+        if (withdrawalAmount > atmState.getBalance(currency)) {
             throw new IllegalStateException(Message.INSUFFICIENT_FUNDS.getPattern());
         }
 
-        int minNominal = getMinNominal(currency).getNominal();
+        int minNominal = atmState.getMinNominal(currency).getNominal();
         if (withdrawalAmount % minNominal > 0) {
             String message = MessageFormat.format(Message.AMOUNT_MUST_BE_MULTIPLE_OF.getPattern(), minNominal);
             throw new IllegalStateException(message);
         }
-    }
-
-    public Map<Nominal, Integer> getSortedNominalMap(Map<Nominal, Integer> unsortedMap) {
-        Map<Nominal, Integer> sortedMap = new TreeMap<>(Nominal.getComparator());
-        sortedMap.putAll(unsortedMap);
-        return sortedMap;
-    }
-
-    private void updateAtmCurrentState(Currency currency) {
-        removeEndedNominals(currency);
-        recalculateBalance(currency);
-        updateMinNominal(currency);
-    }
-
-    private void removeEndedNominals(Currency currency) {
-        banknotes.get(currency).values().removeIf(value -> value < 1);
-    }
-
-    private void recalculateBalance(Currency currency) {
-        int newBalance = banknotes.get(currency).entrySet().stream()
-                .mapToInt(entry -> entry.getKey().getNominal() * entry.getValue())
-                .sum();
-
-        balances.put(currency, newBalance);
-    }
-
-    private void updateMinNominal(Currency currency) {
-        Nominal newMinNominal = banknotes.get(currency).keySet().stream()
-                .min(Comparator.comparingInt(Nominal::getNominal))
-                .orElse(currency.getDefaultMinValue());
-
-        minNominals.put(currency, newMinNominal);
-    }
-
-    public Integer getBalance(Currency currency) {
-        return balances.getOrDefault(currency, DEFAULT_BALANCE_VALUE);
-    }
-
-    public Nominal getMinNominal(Currency currency) {
-        return minNominals.getOrDefault(currency, currency.getDefaultMinValue());
     }
 }
