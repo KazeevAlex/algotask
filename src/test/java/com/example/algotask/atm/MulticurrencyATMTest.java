@@ -10,6 +10,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.util.Map;
+import java.util.TreeMap;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -32,12 +33,13 @@ class MulticurrencyATMTest {
     @Test
     void withdraw_shouldReturnCorrectBanknotes_whenSufficientFunds() {
         // given
-        when(atmState.getBanknotes(Currency.RUB)).thenReturn(Map.of(
+        Map<Nominal, Integer> map = Map.of(
                 RubleNominal.RUB_1000, 5,
                 RubleNominal.RUB_500, 10,
                 RubleNominal.RUB_100, 10,
                 RubleNominal.RUB_50, 10
-        ));
+        );
+        when(atmState.getBanknotes(Currency.RUB)).thenReturn(new TreeMap<>(map));
         when(atmState.getBalance(Currency.RUB)).thenReturn(11500);
         when(atmState.getMinNominal(Currency.RUB)).thenReturn(RubleNominal.RUB_50);
 
