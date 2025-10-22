@@ -15,9 +15,11 @@ public class ReservationATM {
     private static final double MAX_RESERVATION_PERCENTAGE = 0.05;
 
     private final AtmState atmState;
+    private final ExpiredReservationScheduler reservationScheduler;
 
     public ReservationATM(AtmState atmState) {
         this.atmState = atmState;
+        this.reservationScheduler = new ExpiredReservationScheduler(atmState);
     }
 
     public double getMaxReservationPercentage() {
@@ -60,12 +62,16 @@ public class ReservationATM {
         }
 
         atmState.putReservation(reservationUuid, reservedBanknotes);
+        reservationScheduler.schedule(reservationUuid, currency);
+
         return reservationUuid;
     }
 
     public Map<Currency, Map<Nominal, Integer>> withdrawReservation(UUID reservationUuid) {
-        checkReservationUuid(reservationUuid);
-        return atmState.removeReservation(reservationUuid);
+        reservationScheduler.cancel(reservationUuid);
+        var reservation = atmState.removeReservation(reservationUuid);
+        checkReservation(reservationUuid, reservation);
+        return reservation;
     }
 
     private Map<Currency, Map<Nominal, Integer>> getBanknotes(Currency currency, Integer amount) {
@@ -124,8 +130,8 @@ public class ReservationATM {
         }
     }
 
-    private void checkReservationUuid(UUID reservationUuid) {
-        if (!atmState.containsReservation(reservationUuid)) {
+    private void checkReservation(UUID reservationUuid, Map<Currency, Map<Nominal, Integer>> reservation) {
+        if (reservation == null || reservation.isEmpty()) {
             String message = MessageFormat.format(Message.RESERVATION_NOT_EXIST.getPattern(), reservationUuid);
             throw new IllegalStateException(message);
         }
