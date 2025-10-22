@@ -3,9 +3,12 @@ package com.example.algotask.atm;
 import com.example.algotask.currency.Currency;
 import com.example.algotask.currency.Nominal;
 import com.example.algotask.currency.RubleNominal;
+import com.example.algotask.message.Message;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
+import java.lang.reflect.Field;
+import java.text.MessageFormat;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
@@ -191,4 +194,37 @@ class ReservationATMTest {
             assertTrue(atmState.containsReservation(uuid));
         });
     }
+    
+    @Test
+    void testReserveExceedsMaxPercentage() {
+        int initialBalance = atmState.getBalance(Currency.RUB);
+        int maxAllowedReservation = getMaxAllowedReservation(initialBalance);
+        int minNominal = atmState.getMinNominal(Currency.RUB).getNominal();
+        maxAllowedReservation -= maxAllowedReservation % minNominal;
+
+        // Attempt to reserve an amount slightly more than the allowed maximum
+        int reserveAmount = maxAllowedReservation + minNominal;
+
+        IllegalStateException exception = assertThrows(IllegalStateException.class, () -> {
+            reservationATM.reserve(Currency.RUB, reserveAmount);
+        });
+
+        String expectedMessage = MessageFormat.format(Message.EXCEEDING_MAXIMUM_RESERVATION_AMOUNT.getPattern(), maxAllowedReservation);
+        assertEquals(expectedMessage, exception.getMessage());
+    }
+
+    private static int getMaxAllowedReservation(int initialBalance) {
+        double MAX_RESERVATION_PERCENTAGE;
+        // Use reflection to get the actual MAX_RESERVATION_PERCENTAGE from Checker
+        try {
+            Field field = Checker.class.getDeclaredField("MAX_RESERVATION_PERCENTAGE");
+            field.setAccessible(true);
+            MAX_RESERVATION_PERCENTAGE = (double) field.get(null);
+        } catch (NoSuchFieldException | IllegalAccessException e) {
+            throw new RuntimeException("Could not access MAX_RESERVATION_PERCENTAGE from Checker via reflection", e);
+        }
+        // Calculate max allowed reservation amount as done in ReservationATM
+        return (int) (initialBalance * (MAX_RESERVATION_PERCENTAGE / 100));
+    }
+
 }

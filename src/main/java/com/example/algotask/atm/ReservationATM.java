@@ -2,9 +2,7 @@ package com.example.algotask.atm;
 
 import com.example.algotask.currency.Currency;
 import com.example.algotask.currency.Nominal;
-import com.example.algotask.message.Message;
 
-import java.text.MessageFormat;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
@@ -14,9 +12,13 @@ public class ReservationATM {
     private static final int ZERO_AMOUNT = 0;
 
     private final AtmState atmState;
+    private final ExpiredReservationScheduler reservationScheduler;
+    private final Checker checker;
 
     public ReservationATM(AtmState atmState) {
         this.atmState = atmState;
+        this.reservationScheduler = new ExpiredReservationScheduler(atmState);
+        this.checker = new Checker(atmState);
     }
 
     public Map<Currency, Map<Nominal, Integer>> withdraw(Currency currency, Integer withdrawalAmount) {
@@ -48,22 +50,27 @@ public class ReservationATM {
 
         currency.getLock().lock();
         try {
+            checker.checkMaxReservationAmount(currency, reserveAmount);
             reservedBanknotes = getBanknotes(currency, reserveAmount);
         } finally {
             currency.getLock().unlock();
         }
 
         atmState.putReservation(reservationUuid, reservedBanknotes);
+        reservationScheduler.schedule(reservationUuid, currency);
+
         return reservationUuid;
     }
 
     public Map<Currency, Map<Nominal, Integer>> withdrawReservation(UUID reservationUuid) {
-        checkReservationUuid(reservationUuid);
-        return atmState.removeReservation(reservationUuid);
+        reservationScheduler.cancel(reservationUuid);
+        var reservation = atmState.removeReservation(reservationUuid);
+        checker.checkReservation(reservationUuid, reservation);
+        return reservation;
     }
 
     private Map<Currency, Map<Nominal, Integer>> getBanknotes(Currency currency, Integer amount) {
-        checkWithdrawalAmount(currency, amount);
+        checker.checkWithdrawalAmount(currency, amount);
         var withdrawalBanknotes = prepareWithdrawalBanknotes(currency, amount);
         atmState.remove(withdrawalBanknotes);
         return withdrawalBanknotes;
@@ -95,42 +102,8 @@ public class ReservationATM {
             }
         }
 
-        checkRemainsAmount(currency, withdrawalAmount, remainsAmount);
+        checker.checkRemainsAmount(currency, withdrawalAmount, remainsAmount);
 
         return Map.of(currency, withdrawalBanknotes);
-    }
-
-    private void checkReservationUuid(UUID reservationUuid) {
-        if (!atmState.containsReservation(reservationUuid)) {
-            String message = MessageFormat.format(Message.RESERVATION_NOT_EXIST.getPattern(), reservationUuid);
-            throw new IllegalStateException(message);
-        }
-    }
-
-    private void checkRemainsAmount(Currency currency, Integer withdrawalAmount, Integer remainsAmount) {
-        if (remainsAmount == ZERO_AMOUNT) {
-            return;
-        }
-        int nearestMin = withdrawalAmount - remainsAmount;
-        int nearestMax = atmState.getBanknotes(currency).keySet().stream()
-                .mapToInt(Nominal::getNominal)
-                .filter(i -> i > withdrawalAmount)
-                .min()
-                .getAsInt();
-
-        String message = MessageFormat.format(Message.NEAREST_AVAILABLE_AMOUNTS.getPattern(), nearestMin, nearestMax);
-        throw new IllegalStateException(message);
-    }
-
-    private void checkWithdrawalAmount(Currency currency, Integer withdrawalAmount) {
-        if (withdrawalAmount > atmState.getBalance(currency)) {
-            throw new IllegalStateException(Message.INSUFFICIENT_FUNDS.getPattern());
-        }
-
-        int minNominal = atmState.getMinNominal(currency).getNominal();
-        if (withdrawalAmount % minNominal > 0) {
-            String message = MessageFormat.format(Message.AMOUNT_MUST_BE_MULTIPLE_OF.getPattern(), minNominal);
-            throw new IllegalStateException(message);
-        }
     }
 }
