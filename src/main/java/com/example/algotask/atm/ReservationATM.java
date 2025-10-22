@@ -12,11 +12,16 @@ import java.util.UUID;
 public class ReservationATM {
 
     private static final int ZERO_AMOUNT = 0;
+    private static final double MAX_RESERVATION_PERCENTAGE = 0.05;
 
     private final AtmState atmState;
 
     public ReservationATM(AtmState atmState) {
         this.atmState = atmState;
+    }
+
+    public double getMaxReservationPercentage() {
+        return MAX_RESERVATION_PERCENTAGE;
     }
 
     public Map<Currency, Map<Nominal, Integer>> withdraw(Currency currency, Integer withdrawalAmount) {
@@ -48,6 +53,7 @@ public class ReservationATM {
 
         currency.getLock().lock();
         try {
+            checkMaxReservationAmount(currency, reserveAmount);
             reservedBanknotes = getBanknotes(currency, reserveAmount);
         } finally {
             currency.getLock().unlock();
@@ -98,6 +104,24 @@ public class ReservationATM {
         checkRemainsAmount(currency, withdrawalAmount, remainsAmount);
 
         return Map.of(currency, withdrawalBanknotes);
+    }
+
+    private void checkMaxReservationAmount(Currency currency, Integer reserveAmount) {
+        Integer balance = atmState.getBalance(currency);
+        if (reserveAmount > balance) {
+            throw new IllegalStateException(Message.INSUFFICIENT_FUNDS.getPattern());
+        }
+        int maxReservationAmount = (int) (balance * MAX_RESERVATION_PERCENTAGE);
+        maxReservationAmount -= maxReservationAmount % atmState.getMinNominal(currency).getNominal();
+        if (reserveAmount > maxReservationAmount) {
+            String message;
+            if (maxReservationAmount == 0) {
+                message = Message.INSUFFICIENT_FUNDS.getPattern();
+            } else {
+                message = MessageFormat.format(Message.EXCEEDING_MAXIMUM_RESERVATION_AMOUNT.getPattern(), maxReservationAmount);
+            }
+            throw new IllegalStateException(message);
+        }
     }
 
     private void checkReservationUuid(UUID reservationUuid) {

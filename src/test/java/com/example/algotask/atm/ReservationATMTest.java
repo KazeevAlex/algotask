@@ -3,9 +3,11 @@ package com.example.algotask.atm;
 import com.example.algotask.currency.Currency;
 import com.example.algotask.currency.Nominal;
 import com.example.algotask.currency.RubleNominal;
+import com.example.algotask.message.Message;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
+import java.text.MessageFormat;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
@@ -191,4 +193,25 @@ class ReservationATMTest {
             assertTrue(atmState.containsReservation(uuid));
         });
     }
+    
+    @Test
+    void testReserveExceedsMaxPercentage() {
+        int initialBalance = atmState.getBalance(Currency.RUB);
+        double MAX_RESERVATION_PERCENTAGE = reservationATM.getMaxReservationPercentage();
+        // Calculate max allowed reservation amount as done in ReservationATM
+        int maxAllowedReservation = (int) (initialBalance * MAX_RESERVATION_PERCENTAGE);
+        int minNominal = atmState.getMinNominal(Currency.RUB).getNominal();
+        maxAllowedReservation -= maxAllowedReservation % minNominal;
+
+        // Attempt to reserve an amount slightly more than the allowed maximum
+        int reserveAmount = maxAllowedReservation + minNominal;
+
+        IllegalStateException exception = assertThrows(IllegalStateException.class, () -> {
+            reservationATM.reserve(Currency.RUB, reserveAmount);
+        });
+
+        String expectedMessage = MessageFormat.format(Message.EXCEEDING_MAXIMUM_RESERVATION_AMOUNT.getPattern(), maxAllowedReservation);
+        assertEquals(expectedMessage, exception.getMessage());
+    }
+    
 }
