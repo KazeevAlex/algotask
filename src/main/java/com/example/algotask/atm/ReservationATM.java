@@ -12,7 +12,7 @@ import java.util.UUID;
 public class ReservationATM {
 
     private static final int ZERO_AMOUNT = 0;
-    private static final double MAX_RESERVATION_PERCENTAGE = 0.05;
+    private static final double MAX_RESERVATION_PERCENTAGE = 5;
 
     private final AtmState atmState;
     private final ExpiredReservationScheduler reservationScheduler;
@@ -117,7 +117,7 @@ public class ReservationATM {
         if (reserveAmount > balance) {
             throw new IllegalStateException(Message.INSUFFICIENT_FUNDS.getPattern());
         }
-        int maxReservationAmount = (int) (balance * MAX_RESERVATION_PERCENTAGE);
+        int maxReservationAmount = (int) (balance * (MAX_RESERVATION_PERCENTAGE / 100));
         maxReservationAmount -= maxReservationAmount % atmState.getMinNominal(currency).getNominal();
         if (reserveAmount > maxReservationAmount) {
             String message;

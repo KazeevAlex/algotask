@@ -199,7 +199,7 @@ class ReservationATMTest {
         int initialBalance = atmState.getBalance(Currency.RUB);
         double MAX_RESERVATION_PERCENTAGE = reservationATM.getMaxReservationPercentage();
         // Calculate max allowed reservation amount as done in ReservationATM
-        int maxAllowedReservation = (int) (initialBalance * MAX_RESERVATION_PERCENTAGE);
+        int maxAllowedReservation = (int) (initialBalance * (MAX_RESERVATION_PERCENTAGE / 100));
         int minNominal = atmState.getMinNominal(Currency.RUB).getNominal();
         maxAllowedReservation -= maxAllowedReservation % minNominal;
 
